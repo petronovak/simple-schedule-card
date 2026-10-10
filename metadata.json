@@ -1,0 +1,6 @@
+{
+  "name": "Home Assistant Schedule Card Studio",
+  "description": "Customizer and visual testbench for Home Assistant schedule helper card with Ukrainian and English localization, Monday-first weekly timeline, and export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
