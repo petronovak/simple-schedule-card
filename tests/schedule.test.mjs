@@ -15,6 +15,8 @@ import {
   langOf,
   actionSummary,
   SIMPLE_SCHEDULE_MARKER,
+  SimpleScheduleCard,
+  SimpleScheduleCardEditor,
 } from '../src/card/simple-schedule-card.ts';
 
 test('DAYS has 7 days starting with Monday and ending with Sunday', () => {
@@ -161,3 +163,57 @@ test('blockLabel formats 24h ranges and showTimes string exists', () => {
   assert.equal(`${formatBlock(b1.start).slice(0, 5)}–${formatBlock(b1.end).slice(0, 5)}`, '00:00–07:00');
   assert.equal(`${formatBlock(b2.start).slice(0, 5)}–${formatBlock(b2.end).slice(0, 5)}`, '23:00–24:00');
 });
+
+test('SimpleScheduleCard.setConfig correctly accepts show_time and ignores deprecated show_times', () => {
+  const card = new SimpleScheduleCard();
+
+  // Test show_time: true
+  card.setConfig({ show_time: true });
+  assert.equal(card.showTime, true);
+
+  // Test show_time: false
+  card.setConfig({ show_time: false });
+  assert.equal(card.showTime, false);
+
+  // Default omitted
+  card.setConfig({});
+  assert.equal(card.showTime, false);
+
+  // Verify deprecated show_times is ignored
+  card.setConfig({ show_times: true });
+  assert.equal(card.showTime, false);
+});
+
+test('SimpleScheduleCard.setConfig correctly handles show_time_toggle', () => {
+  const card = new SimpleScheduleCard();
+
+  // Default true
+  card.setConfig({});
+  assert.equal(card.showTimeToggle, true);
+
+  // Explicit false
+  card.setConfig({ show_time_toggle: false });
+  assert.equal(card.showTimeToggle, false);
+
+  // Explicit true
+  card.setConfig({ show_time_toggle: true });
+  assert.equal(card.showTimeToggle, true);
+});
+
+test('SimpleScheduleCardEditor._emit preserves title and clean properties', () => {
+  const editor = new SimpleScheduleCardEditor();
+  let emittedConfig = null;
+  editor.dispatchEvent = (ev) => {
+    if (ev.type === 'config-changed') {
+      emittedConfig = ev.detail.config;
+    }
+  };
+
+  editor._emit({ title: 'Тестовий розклад', show_time: true, show_time_toggle: false });
+  assert.deepEqual(emittedConfig, {
+    title: 'Тестовий розклад',
+    show_time: true,
+    show_time_toggle: false,
+  });
+});
+

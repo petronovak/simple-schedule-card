@@ -17,6 +17,7 @@ import {
   langOf,
   actionSummary,
   SIMPLE_SCHEDULE_MARKER,
+  SimpleScheduleCard,
 } from '../card/simple-schedule-card.ts';
 
 export interface TestResult {
@@ -231,6 +232,32 @@ export async function runAllTests(): Promise<{ passed: boolean; results: TestRes
     if (mondayBlocks[0].start !== 0 || mondayBlocks[0].end !== 420) throw new Error('Блок 1 некоректний');
     if (mondayBlocks[1].start !== 1380 || mondayBlocks[1].end !== 1440) throw new Error('Блок 2 некоректний');
   });
+
+  // --- Suite 8: Card Configuration & Visual Editor ---
+  runTest('Налаштування картки', 'Підтримка параметра show_time у setConfig', () => {
+    const card = new SimpleScheduleCard();
+    card.setConfig({ show_time: true });
+    if (!card.showTime) throw new Error('Очікувалось showTime=true для show_time: true');
+
+    card.setConfig({ show_time: false });
+    if (card.showTime) throw new Error('Очікувалось showTime=false для show_time: false');
+
+    card.setConfig({});
+    if (card.showTime) throw new Error('Очікувалось showTime=false за замовчуванням');
+  });
+
+  runTest('Налаштування картки', 'Підтримка параметра show_time_toggle (відображення чекбокса)', () => {
+    const card = new SimpleScheduleCard();
+    card.setConfig({});
+    if (!card.showTimeToggle) throw new Error('Очікувалось showTimeToggle=true за замовчуванням');
+
+    card.setConfig({ show_time_toggle: false });
+    if (card.showTimeToggle) throw new Error('Очікувалось showTimeToggle=false');
+
+    card.setConfig({ show_time_toggle: true });
+    if (!card.showTimeToggle) throw new Error('Очікувалось showTimeToggle=true');
+  });
+
 
   const total = results.length;
   const passed = results.filter((r) => r.passed).length;

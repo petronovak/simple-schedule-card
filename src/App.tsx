@@ -52,6 +52,14 @@ export default function App() {
 
   // Reference for the custom element host
   const cardContainerRef = useRef<HTMLDivElement>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const [showVisualEditor, setShowVisualEditor] = useState(false);
+  const [cardConfig, setCardConfig] = useState<any>({
+    title: 'Розклади розумного дому',
+    show_add: true,
+    show_time: true,
+    show_time_toggle: true,
+  });
 
   // Subscribe to Hass updates
   useEffect(() => {
@@ -65,6 +73,10 @@ export default function App() {
   const handleLanguageChange = (lang: 'uk' | 'en') => {
     setCardLang(lang);
     hassManager.setLanguage(lang);
+    setCardConfig((prev: any) => ({
+      ...prev,
+      title: lang === 'uk' ? 'Розклади розумного дому' : 'Home Schedules',
+    }));
   };
 
   // Mount and update <simple-schedule-card> in the preview container
@@ -76,20 +88,31 @@ export default function App() {
     if (!cardEl) {
       container.innerHTML = '';
       cardEl = document.createElement('simple-schedule-card');
-      cardEl.setConfig({
-        title: cardLang === 'uk' ? 'Розклади розумного дому' : 'Home Schedules',
-        show_add: true,
-      });
       container.appendChild(cardEl);
-    } else {
-      cardEl.setConfig({
-        title: cardLang === 'uk' ? 'Розклади розумного дому' : 'Home Schedules',
-        show_add: true,
-      });
     }
 
+    cardEl.setConfig(cardConfig);
     cardEl.hass = hassState;
-  }, [activeTab, hassState, cardLang]);
+  }, [activeTab, hassState, cardConfig]);
+
+  // Mount and update <simple-schedule-card-editor> in the visual editor container
+  useEffect(() => {
+    if (!showVisualEditor || !editorContainerRef.current) return;
+    const container = editorContainerRef.current;
+    let editorEl = container.querySelector('simple-schedule-card-editor') as any;
+
+    if (!editorEl) {
+      container.innerHTML = '';
+      editorEl = document.createElement('simple-schedule-card-editor');
+      editorEl.addEventListener('config-changed', (e: any) => {
+        setCardConfig(e.detail.config);
+      });
+      container.appendChild(editorEl);
+    }
+
+    editorEl.setConfig(cardConfig);
+    editorEl.hass = hassState;
+  }, [showVisualEditor, hassState, cardConfig]);
 
   // Run tests automatically on mount
   useEffect(() => {
@@ -130,8 +153,9 @@ export default function App() {
       - type: custom:simple-schedule-card
         title: Розклади опалення та освітлення
         show_add: true
-        show_times: true
+        show_time: true
         # Опційні параметри:
+        # show_time_toggle: false # приховати чекбокс перемикання з шапки
         # height: 450px
         # device_domains:
         #   - climate
@@ -315,7 +339,49 @@ export default function App() {
                     Понеділок – перший день тижня · Повна українська локалізація · Чисті розклади
                   </p>
                 </div>
+                <button
+                  onClick={() => setShowVisualEditor((v) => !v)}
+                  className={`text-xs px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all font-medium ${
+                    showVisualEditor
+                      ? 'bg-sky-500/20 border-sky-500/50 text-sky-400'
+                      : isDarkTheme
+                      ? 'border-slate-800 hover:bg-slate-900 text-slate-300'
+                      : 'border-slate-200 hover:bg-slate-100 text-slate-700'
+                  }`}
+                  title="Тестувати візуальний редактор картки (GUI)"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>{showVisualEditor ? 'Приховати редактор' : 'Візуальний редактор (GUI)'}</span>
+                </button>
               </div>
+
+              {/* Visual Editor Tester Frame */}
+              {showVisualEditor && (
+                <div
+                  className={`rounded-2xl border p-4 sm:p-5 transition-colors shadow-sm ${
+                    isDarkTheme
+                      ? 'bg-[#1c1c1e] border-slate-800 text-slate-100'
+                      : 'bg-[#fafafa] border-slate-200 text-slate-900'
+                  }`}
+                  style={
+                    {
+                      '--primary-color': '#0288d1',
+                      '--primary-text-color': isDarkTheme ? '#f1f5f9' : '#1e293b',
+                      '--secondary-text-color': isDarkTheme ? '#94a3b8' : '#64748b',
+                      '--divider-color': isDarkTheme ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+                    } as React.CSSProperties
+                  }
+                >
+                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-dashed border-slate-700/40 text-xs">
+                    <span className="font-semibold text-sky-400 flex items-center gap-1.5">
+                      <Sliders className="w-4 h-4" />
+                      Візуальний редактор конфігурації Lovelace
+                    </span>
+                    <span className="text-slate-400 font-mono text-[11px]">&lt;simple-schedule-card-editor&gt;</span>
+                  </div>
+                  <div ref={editorContainerRef} />
+                </div>
+              )}
 
               {/* Lovelace Dashboard Frame with CSS variables mimicking HA theme */}
               <div

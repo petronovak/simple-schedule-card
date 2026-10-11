@@ -478,7 +478,8 @@ const STRINGS = {
     errReversed: (day) => `${day}: \u0447\u0430\u0441 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043D\u044F \u0440\u0430\u043D\u0456\u0448\u0435 \u0437\u0430 \u0447\u0430\u0441 \u043F\u043E\u0447\u0430\u0442\u043A\u0443`,
     errOverlap: (day) => `${day}: \u0456\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u0438 \u043F\u0435\u0440\u0435\u0442\u0438\u043D\u0430\u044E\u0442\u044C\u0441\u044F \u043C\u0456\u0436 \u0441\u043E\u0431\u043E\u044E`,
     showTimes: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u0447\u0430\u0441",
-    edShowTimes: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u0447\u0430\u0441 \u0456\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u0456\u0432 \u0446\u0438\u0444\u0440\u0430\u043C\u0438",
+    edShowTime: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u0447\u0430\u0441 \u0456\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u0456\u0432 \u0446\u0438\u0444\u0440\u0430\u043C\u0438",
+    edShowTimeToggle: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u043F\u0435\u0440\u0435\u043C\u0438\u043A\u0430\u0447 \u0447\u0430\u0441\u0443 \u0432 \u0448\u0430\u043F\u0446\u0456 \u043A\u0430\u0440\u0442\u043A\u0438",
     schedules: "\u0420\u043E\u0437\u043A\u043B\u0430\u0434\u0438",
     newSchedule: "\u041D\u043E\u0432\u0438\u0439 \u0440\u043E\u0437\u043A\u043B\u0430\u0434",
     onNow: "\u041F\u0440\u0430\u0446\u044E\u0454 \u0437\u0430\u0440\u0430\u0437",
@@ -583,8 +584,9 @@ const STRINGS = {
     errName: "The schedule needs a name",
     errReversed: (day) => `${day}: end time is before start time`,
     errOverlap: (day) => `${day}: ranges overlap with each other`,
-    showTimes: "Show times",
-    edShowTimes: "Show time intervals as text",
+    showTimes: "Show time",
+    edShowTime: "Show time intervals as text",
+    edShowTimeToggle: "Show time checkbox in card header",
     schedules: "Schedules",
     newSchedule: "New schedule",
     onNow: "On now",
@@ -893,6 +895,7 @@ class SimpleScheduleCard extends Base {
     this._weeksSig = "";
     this._sig = null;
     this._showTimes = false;
+    this._showTimeToggle = true;
     this._opening = false;
     this._editor = null;
     this._clock = null;
@@ -909,7 +912,7 @@ class SimpleScheduleCard extends Base {
     };
   }
   static getStubConfig() {
-    return { show_add: true, show_times: false };
+    return { show_add: true, show_time: false, show_time_toggle: true };
   }
   static getConfigElement() {
     return document.createElement("simple-schedule-card-editor");
@@ -932,9 +935,16 @@ class SimpleScheduleCard extends Base {
     if (config?.hide_entities && !Array.isArray(config.hide_entities)) throw new Error("hide_entities must be a list");
     if (config?.device_domains && !Array.isArray(config.device_domains)) throw new Error("device_domains must be a list");
     this._config = { show_add: true, ...config };
-    if (config?.show_times !== void 0) this._showTimes = !!config.show_times;
+    this._showTimes = Boolean(config?.show_time ?? false);
+    this._showTimeToggle = config?.show_time_toggle !== false;
     this._sig = null;
     this._render();
+  }
+  get showTime() {
+    return this._showTimes;
+  }
+  get showTimeToggle() {
+    return this._showTimeToggle;
   }
   set hass(hass) {
     const first = !this._hass;
@@ -1057,10 +1067,11 @@ class SimpleScheduleCard extends Base {
       <div class="header">
         <h2>${esc(this._config.title ?? t.schedules)}</h2>
         <div class="header-actions">
-          <label class="toggle-times" title="${esc(t.edShowTimes)}">
+          ${this._showTimeToggle ? `
+          <label class="toggle-times" title="${esc(t.edShowTime)}">
             <input type="checkbox" data-act="toggleTimes" ${this._showTimes ? "checked" : ""}>
             <span>${esc(t.showTimes)}</span>
-          </label>
+          </label>` : ""}
           ${canEdit && this._config.show_add !== false ? `<button class="btn primary" data-act="new">+ ${esc(t.newSchedule)}</button>` : ""}
         </div>
       </div>`;
@@ -1742,35 +1753,55 @@ class SimpleScheduleCardEditor extends Base {
     this._hass = null;
     this._config = null;
     this._emitted = null;
+    this._built = false;
+    this._lang = "";
+    this._schedulesSig = "";
+    this._debounceTimer = null;
   }
   setConfig(config) {
     if (this._emitted && JSON.stringify(config) === this._emitted) return;
     this._config = { ...config };
-    this._render();
+    if (!this._built) {
+      this._build();
+    } else {
+      this._syncFormValues();
+    }
   }
   set hass(hass) {
+    const prevLang = this._lang;
     this._hass = hass;
-    this._render();
+    this._lang = langOf(hass);
+    if (!this._built || prevLang && prevLang !== this._lang) {
+      this._build();
+      return;
+    }
+    this._updateSchedulesList();
   }
   get _t() {
     return STRINGS[langOf(this._hass)] || STRINGS.en;
   }
   _emit(config) {
-    for (const [k, v] of Object.entries(config)) {
-      if (v === "" || v === void 0 || Array.isArray(v) && !v.length) delete config[k];
+    const next = { ...config };
+    for (const [k, v] of Object.entries(next)) {
+      if (v === "" || v === void 0 || Array.isArray(v) && !v.length) delete next[k];
     }
-    this._config = config;
-    this._emitted = JSON.stringify(config);
-    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+    this._config = next;
+    this._emitted = JSON.stringify(next);
+    if (typeof this.dispatchEvent === "function") {
+      this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: next }, bubbles: true, composed: true }));
+    }
   }
-  _render() {
+  _build() {
     if (!this._config) return;
+    if (typeof this.attachShadow === "function" && !this.shadowRoot) {
+      this.attachShadow({ mode: "open" });
+    }
+    if (!this.shadowRoot) return;
+    this._built = true;
     const t = this._t;
     const c = this._config;
-    const schedules = Object.values(this._hass?.states || {}).filter((e) => e.entity_id.startsWith("schedule.")).sort((a, b) => entityName(a).localeCompare(entityName(b), langOf(this._hass)));
-    const whitelist = Array.isArray(c.entities);
-    const shown = (id) => whitelist ? c.entities.includes(id) : !(c.hide_entities || []).includes(id);
-    if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+    const isShowTime = Boolean(c.show_time ?? false);
+    const isShowTimeToggle = c.show_time_toggle !== false;
     this.shadowRoot.innerHTML = `
       <style>
         .ed { display: flex; flex-direction: column; gap: 16px; color: var(--primary-text-color, #212121); font-size: 14px; }
@@ -1794,7 +1825,8 @@ class SimpleScheduleCardEditor extends Base {
           <label class="field"><span>${esc(t.edTitle)}</span><input data-key="title" value="${esc(c.title ?? "")}" placeholder="${esc(t.schedules)}"></label>
           <label class="field"><span>${esc(t.edHeight)}</span><input data-key="height" value="${esc(c.height ?? "")}" placeholder="${esc(t.edHeightHint)}"></label>
           <label class="chk"><input type="checkbox" data-bool="show_add" ${c.show_add !== false ? "checked" : ""}><span>${esc(t.edShowAdd)}</span></label>
-          <label class="chk"><input type="checkbox" data-bool="show_times" ${c.show_times ? "checked" : ""}><span>${esc(t.edShowTimes)}</span></label>
+          <label class="chk"><input type="checkbox" data-bool="show_time" ${isShowTime ? "checked" : ""}><span>${esc(t.edShowTime)}</span></label>
+          <label class="chk"><input type="checkbox" data-bool="show_time_toggle" ${isShowTimeToggle ? "checked" : ""}><span>${esc(t.edShowTimeToggle)}</span></label>
         </section>
         <section>
           <h3>${esc(t.edDeviceDomains)}</h3>
@@ -1806,18 +1838,54 @@ class SimpleScheduleCardEditor extends Base {
           <h3>${esc(t.edSchedules)}</h3>
           <p class="hint">${esc(t.edSchedulesHint)}</p>
           <div class="actions"><button data-all>${esc(t.edAll)}</button><button data-none>${esc(t.edNone)}</button></div>
-          <div class="list">${schedules.map((e) => `<label class="chk row"><input type="checkbox" data-schedule="${esc(e.entity_id)}" ${shown(e.entity_id) ? "checked" : ""}>
-            <span>${esc(entityName(e))}</span><small dir="ltr">${esc(e.entity_id)}</small></label>`).join("") || `<div class="hint">${esc(t.noSchedules)}</div>`}</div>
+          <div class="list"></div>
         </section>
       </div>`;
     const root = this.shadowRoot;
-    root.querySelectorAll("[data-key]").forEach(
-      (el) => el.addEventListener("change", () => this._emit({ ...this._config, [el.dataset.key]: el.value.trim() }))
-    );
+    this._attachListeners(root);
+    this._updateSchedulesList(true);
+  }
+  _attachListeners(root) {
+    const handleKeyUpdate = (el, immediate = false) => {
+      const key = el.dataset.key;
+      const val = el.value;
+      this._config = { ...this._config, [key]: val };
+      if (this._debounceTimer) clearTimeout(this._debounceTimer);
+      if (immediate) {
+        this._emit({ ...this._config, [key]: val.trim() });
+      } else {
+        this._debounceTimer = setTimeout(() => {
+          this._emit({ ...this._config, [key]: val.trim() });
+        }, 250);
+      }
+    };
+    root.querySelectorAll("[data-key]").forEach((el) => {
+      el.addEventListener("input", () => handleKeyUpdate(el, false));
+      el.addEventListener("change", () => handleKeyUpdate(el, true));
+    });
     root.querySelectorAll("[data-bool]").forEach(
       (el) => el.addEventListener("change", () => {
-        const config = { ...this._config, [el.dataset.bool]: el.checked };
-        if (el.checked) delete config[el.dataset.bool];
+        const key = el.dataset.bool;
+        const checked = el.checked;
+        const config = { ...this._config };
+        if (key === "show_add") {
+          if (checked) delete config.show_add;
+          else config.show_add = false;
+        } else if (key === "show_time") {
+          if (checked) {
+            config.show_time = true;
+          } else {
+            delete config.show_time;
+          }
+        } else if (key === "show_time_toggle") {
+          if (checked) {
+            delete config.show_time_toggle;
+          } else {
+            config.show_time_toggle = false;
+          }
+        } else {
+          config[key] = checked;
+        }
         this._emit(config);
       })
     );
@@ -1837,6 +1905,65 @@ class SimpleScheduleCardEditor extends Base {
       this._saveSchedules();
     });
   }
+  _syncFormValues() {
+    const root = this.shadowRoot;
+    if (!root || !this._config) return;
+    const c = this._config;
+    const titleInput = root.querySelector('[data-key="title"]');
+    if (titleInput && root.activeElement !== titleInput) {
+      titleInput.value = c.title ?? "";
+    }
+    const heightInput = root.querySelector('[data-key="height"]');
+    if (heightInput && root.activeElement !== heightInput) {
+      heightInput.value = c.height ?? "";
+    }
+    const showAdd = root.querySelector('[data-bool="show_add"]');
+    if (showAdd) {
+      showAdd.checked = c.show_add !== false;
+    }
+    const showTime = root.querySelector('[data-bool="show_time"]');
+    if (showTime) {
+      showTime.checked = Boolean(c.show_time ?? false);
+    }
+    const showTimeToggle = root.querySelector('[data-bool="show_time_toggle"]');
+    if (showTimeToggle) {
+      showTimeToggle.checked = c.show_time_toggle !== false;
+    }
+    root.querySelectorAll("[data-domain]").forEach((b) => {
+      const d = b.dataset.domain;
+      b.checked = !c.device_domains?.length || c.device_domains.includes(d);
+    });
+    const whitelist = Array.isArray(c.entities);
+    root.querySelectorAll("[data-schedule]").forEach((b) => {
+      const id = b.dataset.schedule;
+      b.checked = whitelist ? c.entities.includes(id) : !(c.hide_entities || []).includes(id);
+    });
+  }
+  _updateSchedulesList(force = false) {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const listEl = root.querySelector(".list");
+    if (!listEl) return;
+    const t = this._t;
+    const c = this._config || {};
+    const schedules = Object.values(this._hass?.states || {}).filter((e) => e.entity_id?.startsWith("schedule.")).sort((a, b) => entityName(a).localeCompare(entityName(b), this._lang));
+    const sig = schedules.map((e) => `${e.entity_id}:${entityName(e)}`).join("|");
+    if (!force && sig === this._schedulesSig) {
+      const whitelist2 = Array.isArray(c.entities);
+      listEl.querySelectorAll("[data-schedule]").forEach((b) => {
+        const id = b.dataset.schedule;
+        b.checked = whitelist2 ? c.entities.includes(id) : !(c.hide_entities || []).includes(id);
+      });
+      return;
+    }
+    this._schedulesSig = sig;
+    const whitelist = Array.isArray(c.entities);
+    const shown = (id) => whitelist ? c.entities.includes(id) : !(c.hide_entities || []).includes(id);
+    listEl.innerHTML = schedules.length ? schedules.map(
+      (e) => `<label class="chk row"><input type="checkbox" data-schedule="${esc(e.entity_id)}" ${shown(e.entity_id) ? "checked" : ""}>
+              <span>${esc(entityName(e))}</span><small dir="ltr">${esc(e.entity_id)}</small></label>`
+    ).join("") : `<div class="hint" style="padding: 12px;">${esc(t.noSchedules)}</div>`;
+  }
   _saveSchedules() {
     const boxes = [...this.shadowRoot.querySelectorAll("[data-schedule]")];
     const config = { ...this._config };
@@ -1848,18 +1975,12 @@ class SimpleScheduleCardEditor extends Base {
     this._emit(config);
   }
 }
-const ScheduleHelperCard = SimpleScheduleCard;
-const ScheduleHelperCardEditor = SimpleScheduleCardEditor;
 if (typeof customElements !== "undefined") {
   const define = (name, cls) => {
     if (!customElements.get(name)) customElements.define(name, cls);
   };
   define("simple-schedule-card", SimpleScheduleCard);
   define("simple-schedule-card-editor", SimpleScheduleCardEditor);
-  define("schedule-helper-card", class extends SimpleScheduleCard {
-  });
-  define("schedule-helper-card-editor", class extends SimpleScheduleCardEditor {
-  });
   const w = window;
   w.customCards = w.customCards || [];
   if (!w.customCards.some((c) => c.type === "simple-schedule-card")) {
@@ -1879,8 +2000,6 @@ export {
   PICKABLE_DOMAINS,
   SIMPLE_SCHEDULE_MARKER,
   STRINGS,
-  ScheduleHelperCard,
-  ScheduleHelperCardEditor,
   SimpleScheduleCard,
   SimpleScheduleCardEditor,
   VERSION,
