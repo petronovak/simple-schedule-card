@@ -1,6 +1,0 @@
-{
-  "summary":  "План повного видалення застарілого параметра show_times та забезпечення виключного використання show_time і show_time_toggle",
-  "updatedAt":  "2026-10-11T10:30:40.364642647Z",
-  "requestFeedback":  true,
-  "userFacing":  true
-}
