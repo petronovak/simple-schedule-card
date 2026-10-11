@@ -780,6 +780,8 @@ export const STRINGS: Record<string, any> = {
     edNone: 'Жодного',
     edHeight: 'Висота картки',
     edHeightHint: 'Авто або наприклад 450px або 50vh (вміст скролиться)',
+    edFontSize: 'Розмір шрифту',
+    edFontSizeHint: 'CSS-розмір (наприклад, 14px, 15px, 16px, 1rem)',
   },
   en: {
     errName: 'The schedule needs a name',
@@ -887,6 +889,8 @@ export const STRINGS: Record<string, any> = {
     edNone: 'None',
     edHeight: 'Height',
     edHeightHint: 'Auto or e.g. 450px or 50vh (content scrolls)',
+    edFontSize: 'Font size',
+    edFontSizeHint: 'CSS size (e.g. 14px, 15px, 16px, 1rem)',
   },
 };
 
@@ -895,6 +899,14 @@ export function cssHeight(value: any): string | null {
   const v = String(value).trim();
   return /^\d+(\.\d+)?$/.test(v) ? `${v}px` : v;
 }
+
+export function cssFontSize(value: any): string | null {
+  if (value === undefined || value === null || String(value).trim() === '') return null;
+  const v = String(value).trim();
+  return /^\d+(\.\d+)?$/.test(v) ? `${v}px` : v;
+}
+
+export const parseFontSize = cssFontSize;
 
 /** Determine user's language: defaults to Ukrainian if profile starts with 'uk', otherwise English. */
 export const langOf = (hass: any): 'uk' | 'en' =>
@@ -949,13 +961,13 @@ const switchHtml = ({
     <span class="track"></span><span class="knob"></span></span>`;
 
 const BASE_STYLE = `
-  :host { display: block; font-family: var(--ha-font-family, system-ui, -apple-system, sans-serif); }
-  ha-card { overflow: hidden; background: var(--ha-card-background, var(--card-background-color, #ffffff)); border-radius: var(--ha-card-border-radius, 16px); border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(127,127,127,0.18))); box-shadow: var(--ha-card-box-shadow, 0 1px 3px rgba(0,0,0,0.06)); transition: all 0.2s ease; }
+  :host { display: block; font-family: var(--ha-font-family, system-ui, -apple-system, sans-serif); font-size: var(--card-font-size, 14px); }
+  ha-card { overflow: hidden; background: var(--ha-card-background, var(--card-background-color, #ffffff)); border-radius: var(--ha-card-border-radius, 16px); border: 1px solid var(--ha-card-border-color, var(--divider-color, rgba(127,127,127,0.18))); box-shadow: var(--ha-card-box-shadow, 0 1px 3px rgba(0,0,0,0.06)); transition: all 0.2s ease; font-size: var(--card-font-size, 14px); }
   * { box-sizing: border-box; }
   .ic { width: 20px; height: 20px; fill: currentColor; flex: none; }
   button { font: inherit; color: inherit; }
   .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 20px; cursor: pointer;
-    border: 1px solid var(--divider-color, rgba(127,127,127,0.25)); background: transparent; color: var(--primary-color, #0288d1); font-size: 14px; font-weight: 500; transition: all 0.15s ease; }
+    border: 1px solid var(--divider-color, rgba(127,127,127,0.25)); background: transparent; color: var(--primary-color, #0288d1); font-size: calc(var(--card-font-size, 14px) * 1.035); font-weight: 500; transition: all 0.15s ease; }
   .btn.primary { background: var(--primary-color, #0288d1); color: var(--text-primary-color, #ffffff); border-color: var(--primary-color, #0288d1); }
   .btn.danger { color: var(--error-color, #e53935); }
   .btn:disabled { opacity: 0.45; cursor: default; }
@@ -969,10 +981,10 @@ const BASE_STYLE = `
   ha-card.fixed .header { flex: none; }
   ha-card.fixed .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
   .header { display: flex; align-items: center; gap: 12px; padding: 18px 20px 12px; }
-  .header h2 { margin: 0; flex: 1; font-size: 19px; font-weight: 600; color: var(--ha-card-header-color, var(--primary-text-color, #212121)); letter-spacing: -0.01em; }
+  .header h2 { margin: 0; flex: 1; font-size: calc(var(--card-font-size, 14px) * 1.428); font-weight: 600; color: var(--ha-card-header-color, var(--primary-text-color, #212121)); letter-spacing: -0.01em; }
   .muted { color: var(--secondary-text-color, #757575); }
-  .small { font-size: 12px; }
-  .hint { color: var(--secondary-text-color, #757575); font-size: 13px; padding: 8px 20px 16px; }
+  .small { font-size: calc(var(--card-font-size, 14px) * 0.857); }
+  .hint { color: var(--secondary-text-color, #757575); font-size: calc(var(--card-font-size, 14px) * 1); padding: 8px 20px 16px; }
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--disabled-text-color, #9e9e9e); flex: none; transition: background 0.2s; }
   .dot.on { background: var(--success-color, #2e7d32); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success-color, #2e7d32) 20%, transparent); }
   .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex: none; }
@@ -984,7 +996,7 @@ const BASE_STYLE = `
   .switch input:checked ~ .knob { inset-inline-start: 17px; background: var(--switch-checked-button-color, var(--primary-color, #0288d1)); }
   .switch input:disabled { cursor: default; }
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: min(540px, calc(100vw - 32px));
-    background: var(--primary-text-color, #212121); color: var(--card-background-color, #ffffff); padding: 12px 20px; border-radius: 12px; font-size: 14px;
+    background: var(--primary-text-color, #212121); color: var(--card-background-color, #ffffff); padding: 12px 20px; border-radius: 12px; font-size: calc(var(--card-font-size, 14px) * 1);
     box-shadow: 0 4px 16px rgba(0,0,0,0.25); animation: toastFade 0.2s ease-out; }
   @keyframes toastFade { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
   .toast[hidden] { display: none; }
@@ -997,24 +1009,24 @@ const SCHEDULE_STYLE = `
   .row.editable { cursor: pointer; }
   .row.editable:hover { background: color-mix(in srgb, var(--primary-color, #0288d1) 6%, transparent); }
   .line { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .name { font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--primary-text-color, #212121); }
+  .name { font-size: calc(var(--card-font-size, 14px) * 1.143); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--primary-text-color, #212121); }
   .spacer { flex: 1; }
-  .state { font-size: 13px; color: var(--secondary-text-color, #757575); white-space: nowrap; }
+  .state { font-size: calc(var(--card-font-size, 14px) * 1); color: var(--secondary-text-color, #757575); white-space: nowrap; }
   .state.on { color: var(--success-color, #2e7d32); font-weight: 600; }
-  .when { margin: 3px 20px 0; font-size: 12px; }
+  .when { margin: 3px 20px 0; font-size: calc(var(--card-font-size, 14px) * 0.928); }
   .bars { margin: 10px 20px 2px; display: flex; flex-direction: column; gap: 5px; }
   .bar-row { display: flex; align-items: center; gap: 8px; }
-  .bar-day { width: 22px; font-size: 11px; font-weight: 500; color: var(--secondary-text-color, #757575); text-align: start; flex: none; }
+  .bar-day { width: 24px; font-size: calc(var(--card-font-size, 14px) * 0.857); font-weight: 500; color: var(--secondary-text-color, #757575); text-align: start; flex: none; }
   .bar { position: relative; flex: 1; height: 6px; border-radius: 4px; background: color-mix(in srgb, var(--divider-color, #757575) 40%, transparent); overflow: hidden; }
   .bar i { position: absolute; top: 0; bottom: 0; background: var(--primary-color, #0288d1); border-radius: 3px; }
-  .bar-times { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--primary-text-color, #212121); min-width: 105px; max-width: 220px; text-align: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; opacity: 0.85; flex: none; }
+  .bar-times { font-size: calc(var(--card-font-size, 14px) * 0.857); font-variant-numeric: tabular-nums; color: var(--primary-text-color, #212121); min-width: 105px; max-width: 220px; text-align: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; opacity: 0.85; flex: none; }
   .header-actions { display: flex; align-items: center; gap: 12px; }
-  .toggle-times { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--secondary-text-color, #757575); user-select: none; }
+  .toggle-times { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: calc(var(--card-font-size, 14px) * 1); color: var(--secondary-text-color, #757575); user-select: none; }
   .toggle-times input { width: 16px; height: 16px; accent-color: var(--primary-color, #0288d1); cursor: pointer; margin: 0; }
   .toggle-times:hover { color: var(--primary-text-color, #212121); }
   @media (max-width: 520px) {
     .header-actions { gap: 8px; }
-    .bar-times { min-width: 80px; max-width: 130px; font-size: 10px; }
+    .bar-times { min-width: 80px; max-width: 130px; font-size: calc(var(--card-font-size, 14px) * 0.785); }
   }
 `;
 
@@ -1028,45 +1040,45 @@ const EDITOR_STYLE = `
     dialog.editor { width: 100vw; max-width: 100vw; height: 100vh; height: 100dvh; max-height: 100dvh; border-radius: 0; margin: 0; }
   }
   .dlg-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.18)); flex: none; }
-  .dlg-head h3 { flex: 1; margin: 0 6px; font-size: 18px; font-weight: 600; }
+  .dlg-head h3 { flex: 1; margin: 0 6px; font-size: 19px; font-weight: 600; }
   .dlg-body { overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 20px; overscroll-behavior: contain; }
   .field { display: flex; flex-direction: column; gap: 6px; }
-  .field span, .label { font-size: 13px; color: var(--secondary-text-color, #757575); font-weight: 500; }
+  .field span, .label { font-size: 13.5px; color: var(--secondary-text-color, #757575); font-weight: 500; }
   .field input, .search input, .times input { font: inherit; color: inherit; padding: 10px 14px; border-radius: 10px;
     border: 1px solid var(--divider-color, rgba(127,127,127,0.22)); background: var(--secondary-background-color, rgba(127,127,127,0.06)); transition: border-color 0.15s; }
   .field input:focus, .times input:focus, .search input:focus { border-color: var(--primary-color, #0288d1); outline: none; }
   .field input { font-size: 15px; }
   .section { display: flex; flex-direction: column; gap: 10px; }
   .row-between { display: flex; align-items: center; justify-content: space-between; }
-  .link { font: inherit; font-size: 13px; color: var(--primary-color, #0288d1); background: none; border: 0; padding: 0; cursor: pointer; font-weight: 500; }
+  .link { font: inherit; font-size: 13.5px; color: var(--primary-color, #0288d1); background: none; border: 0; padding: 0; cursor: pointer; font-weight: 500; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .choice { padding: 6px 14px; border-radius: 16px; border: 1px solid var(--divider-color, rgba(127,127,127,0.25)); background: transparent; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+  .choice { padding: 6px 14px; border-radius: 16px; border: 1px solid var(--divider-color, rgba(127,127,127,0.25)); background: transparent; cursor: pointer; font-size: 13.5px; transition: all 0.15s; }
   .choice[aria-checked="true"] { background: color-mix(in srgb, var(--primary-color, #0288d1) 18%, transparent); border-color: var(--primary-color, #0288d1); font-weight: 600; color: var(--primary-color, #0288d1); }
   .device { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border-radius: 10px; cursor: pointer; text-align: start;
-    border: 1px dashed var(--divider-color, rgba(127,127,127,0.3)); background: transparent; color: var(--primary-color, #0288d1); font-size: 14px; }
+    border: 1px dashed var(--divider-color, rgba(127,127,127,0.3)); background: transparent; color: var(--primary-color, #0288d1); font-size: 14.5px; }
   .device .dname { color: var(--primary-text-color, #212121); font-weight: 500; }
   .opt { display: flex; align-items: center; gap: 10px; min-height: 40px; }
-  .summary { padding: 4px 0; font-size: 13px; }
+  .summary { padding: 4px 0; font-size: 13.5px; }
   .opt input[type=range] { flex: 1; accent-color: var(--primary-color, #0288d1); }
   .grow, .spacer { flex: 1; min-width: 0; }
   .check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
   .check input { width: 18px; height: 18px; accent-color: var(--primary-color, #0288d1); margin: 0; }
   .stepper { display: inline-flex; align-items: center; gap: 4px; margin-inline-start: auto; }
   .stepper b { min-width: 44px; text-align: center; font-size: 16px; font-variant-numeric: tabular-nums; }
-  .warn, .error { display: flex; gap: 8px; align-items: flex-start; padding: 10px 14px; border-radius: 10px; font-size: 13px; }
+  .warn, .error { display: flex; gap: 8px; align-items: flex-start; padding: 10px 14px; border-radius: 10px; font-size: 13.5px; }
   .warn { background: color-mix(in srgb, var(--warning-color, #f57c00) 16%, transparent); }
   .error { background: color-mix(in srgb, var(--error-color, #d32f2f) 14%, transparent); color: var(--error-color, #d32f2f); }
   .days { display: flex; flex-direction: column; }
   .day { border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.12)); padding: 8px 0; }
   .day:last-child { border-bottom: 0; }
   .day-line { display: flex; align-items: center; gap: 10px; }
-  .day-line .dname { width: 90px; flex: none; font-size: 14px; font-weight: 500; }
+  .day-line .dname { width: 92px; flex: none; font-size: 14.5px; font-weight: 500; }
   .ranges { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
   .range { display: inline-flex; align-items: center; border-radius: 16px; background: color-mix(in srgb, var(--primary-color, #0288d1) 16%, transparent); }
-  .range button { border: 0; background: transparent; cursor: pointer; padding: 5px 6px 5px 12px; font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .range button { border: 0; background: transparent; cursor: pointer; padding: 5px 6px 5px 12px; font-size: 13.5px; font-variant-numeric: tabular-nums; font-weight: 500; }
   .range .x { padding: 4px 8px 4px 2px; display: inline-flex; color: var(--secondary-text-color, #757575); }
   .range .x .ic { width: 16px; height: 16px; }
-  .add { display: inline-flex; align-items: center; gap: 3px; padding: 5px 12px; border-radius: 16px; font-size: 13px; cursor: pointer;
+  .add { display: inline-flex; align-items: center; gap: 3px; padding: 5px 12px; border-radius: 16px; font-size: 13.5px; cursor: pointer;
     border: 1px dashed var(--divider-color, rgba(127,127,127,0.3)); background: transparent; color: var(--primary-color, #0288d1); font-weight: 500; }
   .add .ic { width: 16px; height: 16px; }
   .icon-space { width: 36px; flex: none; }
@@ -1125,6 +1137,7 @@ export class SimpleScheduleCard extends Base {
   private _sig: string | null = null;
   private _showTimes: boolean = false;
   private _showTimeToggle: boolean = true;
+  private _fontSize: string | null = null;
   private _opening = false;
   private _editor: any = null;
   private _clock: any = null;
@@ -1176,6 +1189,7 @@ export class SimpleScheduleCard extends Base {
     this._config = { show_add: true, ...config };
     this._showTimes = Boolean(config?.show_time ?? false);
     this._showTimeToggle = config?.show_time_toggle !== false;
+    this._fontSize = cssFontSize(config?.font_size);
     this._sig = null;
     this._render();
   }
@@ -1186,6 +1200,10 @@ export class SimpleScheduleCard extends Base {
 
   get showTimeToggle(): boolean {
     return this._showTimeToggle;
+  }
+
+  get fontSize(): string | null {
+    return this._fontSize;
   }
 
   set hass(hass: any) {
@@ -1346,6 +1364,13 @@ export class SimpleScheduleCard extends Base {
     const height = cssHeight(this._config.height);
     card.classList.toggle('fixed', !!height);
     (card as HTMLElement).style.height = height || '';
+    if (this._fontSize) {
+      (card as HTMLElement).style.setProperty('--card-font-size', this._fontSize);
+      (card as HTMLElement).style.fontSize = this._fontSize;
+    } else {
+      (card as HTMLElement).style.removeProperty('--card-font-size');
+      (card as HTMLElement).style.fontSize = '';
+    }
     const body = root.querySelector('.body')!;
     const top = body.querySelector('.scroll')?.scrollTop ?? 0;
     body.innerHTML = `${header}<div class="scroll">${content}</div>`;
@@ -2163,6 +2188,7 @@ export class SimpleScheduleCardEditor extends Base {
         <section>
           <h3>${esc(t.edGeneral)}</h3>
           <label class="field"><span>${esc(t.edTitle)}</span><input data-key="title" value="${esc(c.title ?? '')}" placeholder="${esc(t.schedules)}"></label>
+          <label class="field"><span>${esc(t.edFontSize)}</span><input data-key="font_size" value="${esc(c.font_size ?? '')}" placeholder="${esc(t.edFontSizeHint)}"></label>
           <label class="field"><span>${esc(t.edHeight)}</span><input data-key="height" value="${esc(c.height ?? '')}" placeholder="${esc(t.edHeightHint)}"></label>
           <label class="chk"><input type="checkbox" data-bool="show_add" ${c.show_add !== false ? 'checked' : ''}><span>${esc(t.edShowAdd)}</span></label>
           <label class="chk"><input type="checkbox" data-bool="show_time" ${isShowTime ? 'checked' : ''}><span>${esc(t.edShowTime)}</span></label>
@@ -2262,6 +2288,11 @@ export class SimpleScheduleCardEditor extends Base {
     const titleInput = root.querySelector('[data-key="title"]') as HTMLInputElement | null;
     if (titleInput && root.activeElement !== titleInput) {
       titleInput.value = c.title ?? '';
+    }
+
+    const fontSizeInput = root.querySelector('[data-key="font_size"]') as HTMLInputElement | null;
+    if (fontSizeInput && root.activeElement !== fontSizeInput) {
+      fontSizeInput.value = c.font_size ?? '';
     }
 
     const heightInput = root.querySelector('[data-key="height"]') as HTMLInputElement | null;

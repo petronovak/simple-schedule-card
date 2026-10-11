@@ -18,6 +18,8 @@ import {
   actionSummary,
   SIMPLE_SCHEDULE_MARKER,
   SimpleScheduleCard,
+  cssFontSize,
+  parseFontSize,
 } from '../card/simple-schedule-card.ts';
 
 export interface TestResult {
@@ -256,6 +258,39 @@ export async function runAllTests(): Promise<{ passed: boolean; results: TestRes
 
     card.setConfig({ show_time_toggle: true });
     if (!card.showTimeToggle) throw new Error('Очікувалось showTimeToggle=true');
+  });
+
+  runTest('Налаштування картки', 'Підтримка параметра font_size та нормалізація розміру', () => {
+    const card = new SimpleScheduleCard();
+
+    // Default: font_size absent
+    card.setConfig({});
+    if (card.fontSize !== null) throw new Error('Очікувалось fontSize=null за замовчуванням');
+
+    // String with px
+    card.setConfig({ font_size: '15px' });
+    if (card.fontSize !== '15px') throw new Error(`Очікувалось fontSize='15px', отримано ${card.fontSize}`);
+
+    // Numeric value converts to px
+    card.setConfig({ font_size: 16 });
+    if (card.fontSize !== '16px') throw new Error(`Очікувалось fontSize='16px', отримано ${card.fontSize}`);
+
+    // Numeric string converts to px
+    card.setConfig({ font_size: '18' });
+    if (card.fontSize !== '18px') throw new Error(`Очікувалось fontSize='18px', отримано ${card.fontSize}`);
+
+    // rem unit
+    card.setConfig({ font_size: '1.1rem' });
+    if (card.fontSize !== '1.1rem') throw new Error(`Очікувалось fontSize='1.1rem', отримано ${card.fontSize}`);
+
+    // Empty string resets to null
+    card.setConfig({ font_size: '' });
+    if (card.fontSize !== null) throw new Error('Очікувалось fontSize=null для порожнього значення');
+
+    // Direct helper functions check
+    if (cssFontSize('14px') !== '14px') throw new Error('cssFontSize(14px) має повертати 14px');
+    if (parseFontSize(15) !== '15px') throw new Error('parseFontSize(15) має повертати 15px');
+    if (cssFontSize(null) !== null) throw new Error('cssFontSize(null) має повертати null');
   });
 
 

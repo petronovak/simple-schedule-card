@@ -17,6 +17,8 @@ import {
   SIMPLE_SCHEDULE_MARKER,
   SimpleScheduleCard,
   SimpleScheduleCardEditor,
+  cssFontSize,
+  parseFontSize,
 } from '../src/card/simple-schedule-card.ts';
 
 test('DAYS has 7 days starting with Monday and ending with Sunday', () => {
@@ -209,11 +211,51 @@ test('SimpleScheduleCardEditor._emit preserves title and clean properties', () =
     }
   };
 
-  editor._emit({ title: 'Тестовий розклад', show_time: true, show_time_toggle: false });
+  editor._emit({ title: 'Тестовий розклад', show_time: true, show_time_toggle: false, font_size: '15px' });
   assert.deepEqual(emittedConfig, {
     title: 'Тестовий розклад',
     show_time: true,
     show_time_toggle: false,
+    font_size: '15px',
   });
+
+  // Empty font_size should be removed from config
+  editor._emit({ title: 'Тестовий розклад', font_size: '' });
+  assert.deepEqual(emittedConfig, {
+    title: 'Тестовий розклад',
+  });
+});
+
+test('SimpleScheduleCard.setConfig and cssFontSize normalize font_size', () => {
+  const card = new SimpleScheduleCard();
+
+  // Default null
+  card.setConfig({});
+  assert.equal(card.fontSize, null);
+
+  // '15px' preserved
+  card.setConfig({ font_size: '15px' });
+  assert.equal(card.fontSize, '15px');
+
+  // number 16 converts to '16px'
+  card.setConfig({ font_size: 16 });
+  assert.equal(card.fontSize, '16px');
+
+  // string number '17' converts to '17px'
+  card.setConfig({ font_size: '17' });
+  assert.equal(card.fontSize, '17px');
+
+  // rem unit
+  card.setConfig({ font_size: '1.15rem' });
+  assert.equal(card.fontSize, '1.15rem');
+
+  // empty or whitespace string resets to null
+  card.setConfig({ font_size: '   ' });
+  assert.equal(card.fontSize, null);
+
+  // Helper assertions
+  assert.equal(cssFontSize('14px'), '14px');
+  assert.equal(parseFontSize(18), '18px');
+  assert.equal(cssFontSize(undefined), null);
 });
 

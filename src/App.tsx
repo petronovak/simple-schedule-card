@@ -156,6 +156,7 @@ export default function App() {
         show_time: true
         # Опційні параметри:
         # show_time_toggle: false # приховати чекбокс перемикання з шапки
+        # font_size: 15px         # розмір шрифту: 14px, 15px, 16px, 1rem тощо
         # height: 450px
         # device_domains:
         #   - climate
