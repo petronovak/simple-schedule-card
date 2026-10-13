@@ -787,20 +787,20 @@ const SCHEDULE_STYLE = `
   .spacer { flex: 1; }
   .state { font-size: calc(var(--card-font-size, 15px) * 1); color: var(--secondary-text-color, #757575); white-space: nowrap; }
   .state.on { color: var(--success-color, #2e7d32); font-weight: 600; }
-  .when { margin: 3px 20px 0; font-size: calc(var(--card-font-size, 15px) * 1); }
+  .when { margin: 3px 20px 0; font-size: calc(var(--card-font-size, 15px) * 0.9); }
   .bars { margin: 8px 10px 2px; display: flex; flex-direction: column; gap: 4px; }
   .bar-row { display: flex; align-items: center; gap: 8px; }
-  .bar-day { width: 24px; font-size: calc(var(--card-font-size, 15px) * 1); font-weight: 500; color: var(--secondary-text-color, #757575); text-align: start; flex: none; }
+  .bar-day { width: 24px; font-size: calc(var(--card-font-size, 15px) * 0.9); font-weight: 500; color: var(--secondary-text-color, #757575); text-align: start; flex: none; }
   .bar { position: relative; flex: 1; height: 6px; border-radius: 4px; background: color-mix(in srgb, var(--divider-color, #757575) 40%, transparent); overflow: hidden; }
   .bar i { position: absolute; top: 0; bottom: 0; background: var(--primary-color, #0288d1); border-radius: 3px; }
-  .bar-times { font-size: calc(var(--card-font-size, 15px) * 1); font-variant-numeric: tabular-nums; color: var(--primary-text-color, #212121); min-width: 105px; max-width: 220px; text-align: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; opacity: 0.85; flex: none; }
+  .bar-times { font-size: calc(var(--card-font-size, 15px) * 0.9); font-variant-numeric: tabular-nums; color: var(--primary-text-color, #212121); min-width: 105px; max-width: 220px; text-align: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; opacity: 0.85; flex: none; }
   .header-actions { display: flex; align-items: center; gap: 12px; }
   .toggle-times { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: calc(var(--card-font-size, 15px) * 1); color: var(--secondary-text-color, #757575); user-select: none; }
   .toggle-times input { width: 16px; height: 16px; accent-color: var(--primary-color, #0288d1); cursor: pointer; margin: 0; }
   .toggle-times:hover { color: var(--primary-text-color, #212121); }
   @media (max-width: 520px) {
     .header-actions { gap: 8px; }
-    .bar-times { min-width: 80px; max-width: 130px; font-size: calc(var(--card-font-size, 15px) * 0.785); }
+    .bar-times { min-width: 80px; max-width: 130px; font-size: calc(var(--card-font-size, 15px) * 0.9); }
   }
 `;
 const EDITOR_STYLE = `
