@@ -1,11 +1,11 @@
 /*
  * Simple Schedule Card — weekly schedules for any device in Home Assistant.
- * Version 1.0.0 (Monday–Sunday, Ukrainian & English localization).
+ * Version 1.0.8 (Monday–Sunday, Ukrainian & English localization).
  *
  *   type: custom:simple-schedule-card
  */
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.8';
 
 // ---------------------------------------------------------------------------- week model
 
@@ -681,6 +681,9 @@ export const STRINGS: Record<string, any> = {
     showTimes: 'Показувати час',
     edShowTime: 'Показувати час інтервалів цифрами',
     edShowTimeToggle: 'Показувати перемикач часу в шапці картки',
+    showBars: 'Показувати графік',
+    edShowBars: 'Показувати графічні смужки розкладу',
+    edShowBarsToggle: 'Показувати перемикач графіка в шапці картки',
     schedules: 'Розклади',
     newSchedule: 'Новий розклад',
     onNow: 'Працює зараз',
@@ -790,6 +793,9 @@ export const STRINGS: Record<string, any> = {
     showTimes: 'Show time',
     edShowTime: 'Show time intervals as text',
     edShowTimeToggle: 'Show time checkbox in card header',
+    showBars: 'Show timeline',
+    edShowBars: 'Show timeline bars',
+    edShowBarsToggle: 'Show timeline checkbox in card header',
     schedules: 'Schedules',
     newSchedule: 'New schedule',
     onNow: 'On now',
@@ -1020,6 +1026,7 @@ const SCHEDULE_STYLE = `
   .bar { position: relative; flex: 1; height: 6px; border-radius: 4px; background: color-mix(in srgb, var(--divider-color, #757575) 40%, transparent); overflow: hidden; }
   .bar i { position: absolute; top: 0; bottom: 0; background: var(--primary-color, #0288d1); border-radius: 3px; }
   .bar-times { font-size: calc(var(--card-font-size, 15px) * 1); font-variant-numeric: tabular-nums; color: var(--primary-text-color, #212121); min-width: 105px; max-width: 220px; text-align: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; opacity: 0.85; flex: none; }
+  .bars.no-bars .bar-times { flex: 1; min-width: 0; max-width: none; text-align: start; opacity: 0.95; }
   .header-actions { display: flex; align-items: center; gap: 12px; }
   .toggle-times { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: calc(var(--card-font-size, 15px) * 1); color: var(--secondary-text-color, #757575); user-select: none; }
   .toggle-times input { width: 16px; height: 16px; accent-color: var(--primary-color, #0288d1); cursor: pointer; margin: 0; }
@@ -1027,6 +1034,7 @@ const SCHEDULE_STYLE = `
   @media (max-width: 520px) {
     .header-actions { gap: 8px; }
     .bar-times { min-width: 80px; max-width: 130px; font-size: calc(var(--card-font-size, 15px) * 1); }
+    .bars.no-bars .bar-times { min-width: 0; max-width: none; }
   }
 `;
 
@@ -1104,18 +1112,24 @@ const EDITOR_STYLE = `
   @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-function weekBarsHtml(week: WeekSchedule, lang: 'uk' | 'en', showTimes = false): string {
+function weekBarsHtml(week: WeekSchedule, lang: 'uk' | 'en', showTimes = false, showBars = true): string {
   const names = DAY_NAMES[lang] || DAY_NAMES.en;
   const shortNames = DAY_SHORT[lang] || DAY_SHORT.en;
-  return `<div class="bars ${showTimes ? 'with-times' : ''}" dir="ltr">${DAYS.map((d, i) => {
+  const classes = ['bars'];
+  if (showTimes) classes.push('with-times');
+  if (!showBars) classes.push('no-bars');
+  return `<div class="${classes.join(' ')}" dir="ltr">${DAYS.map((d, i) => {
     const blocks = week.days[d] || [];
     const timesStr = blocks.map(blockLabel).join(', ');
+    const barHtml = showBars
+      ? `<span class="bar">${blocks
+          .map((b) => `<i style="left:${(b.start / 14.4).toFixed(2)}%;width:${((b.end - b.start) / 14.4).toFixed(2)}%"></i>`)
+          .join('')}</span>`
+      : '';
     return `
-    <div class="bar-row" title="${esc(names[i])}: ${esc(timesStr || '—')}">
+    <div class="bar-row ${showBars ? '' : 'no-bar'}" title="${esc(names[i])}: ${esc(timesStr || '—')}">
       <span class="bar-day">${esc(shortNames[i])}</span>
-      <span class="bar">${blocks
-        .map((b) => `<i style="left:${(b.start / 14.4).toFixed(2)}%;width:${((b.end - b.start) / 14.4).toFixed(2)}%"></i>`)
-        .join('')}</span>
+      ${barHtml}
       ${showTimes ? `<span class="bar-times" title="${esc(timesStr)}">${esc(timesStr || '—')}</span>` : ''}
     </div>`;
   }).join('')}</div>`;
@@ -1137,6 +1151,8 @@ export class SimpleScheduleCard extends Base {
   private _sig: string | null = null;
   private _showTimes: boolean = false;
   private _showTimeToggle: boolean = true;
+  private _showBars: boolean = true;
+  private _showBarsToggle: boolean = false;
   private _fontSize: string | null = null;
   private _opening = false;
   private _editor: any = null;
@@ -1158,7 +1174,7 @@ export class SimpleScheduleCard extends Base {
   }
 
   static getStubConfig() {
-    return { show_add: true, show_time: false, show_time_toggle: true };
+    return { show_add: true, show_time: false, show_time_toggle: true, show_bars: true, show_bars_toggle: false };
   }
 
   static getConfigElement() {
@@ -1189,6 +1205,8 @@ export class SimpleScheduleCard extends Base {
     this._config = { show_add: true, ...config };
     this._showTimes = Boolean(config?.show_time ?? false);
     this._showTimeToggle = config?.show_time_toggle !== false;
+    this._showBars = config?.show_bars !== false;
+    this._showBarsToggle = Boolean(config?.show_bars_toggle ?? false);
     this._fontSize = cssFontSize(config?.font_size);
     this._sig = null;
     this._render();
@@ -1200,6 +1218,14 @@ export class SimpleScheduleCard extends Base {
 
   get showTimeToggle(): boolean {
     return this._showTimeToggle;
+  }
+
+  get showBars(): boolean {
+    return this._showBars;
+  }
+
+  get showBarsToggle(): boolean {
+    return this._showBarsToggle;
   }
 
   get fontSize(): string | null {
@@ -1311,6 +1337,7 @@ export class SimpleScheduleCard extends Base {
       this._isAdmin,
       this._config,
       this._showTimes,
+      this._showBars,
       new Date().toDateString(),
       new Date().getHours(),
       visible.map((e) => [e.entity_id, e.last_updated]),
@@ -1328,6 +1355,9 @@ export class SimpleScheduleCard extends Base {
       root.addEventListener('change', (e: any) => {
         if (e.target?.dataset?.act === 'toggleTimes') {
           this._showTimes = e.target.checked;
+          this._render(true);
+        } else if (e.target?.dataset?.act === 'toggleBars') {
+          this._showBars = e.target.checked;
           this._render(true);
         }
       });
@@ -1347,6 +1377,11 @@ export class SimpleScheduleCard extends Base {
       <div class="header">
         <h2>${esc(this._config.title ?? t.schedules)}</h2>
         <div class="header-actions">
+          ${this._showBarsToggle ? `
+          <label class="toggle-times" title="${esc(t.edShowBars)}">
+            <input type="checkbox" data-act="toggleBars" ${this._showBars ? 'checked' : ''}>
+            <span>${esc(t.showBars)}</span>
+          </label>` : ''}
           ${this._showTimeToggle ? `
           <label class="toggle-times" title="${esc(t.edShowTime)}">
             <input type="checkbox" data-act="toggleTimes" ${this._showTimes ? 'checked' : ''}>
@@ -1400,7 +1435,7 @@ export class SimpleScheduleCard extends Base {
         </div>
         ${when ? `<div class="when muted small">${esc(when)}</div>` : ''}
         ${yaml ? `<div class="muted small">${esc(t.yaml)}</div>` : ''}
-        ${week ? weekBarsHtml(week, this._lang, this._showTimes) : ''}
+        ${week ? weekBarsHtml(week, this._lang, this._showTimes, this._showBars) : ''}
       </div>`;
   }
 
@@ -2166,6 +2201,8 @@ export class SimpleScheduleCardEditor extends Base {
     const c = this._config;
     const isShowTime = Boolean(c.show_time ?? false);
     const isShowTimeToggle = c.show_time_toggle !== false;
+    const isShowBars = c.show_bars !== false;
+    const isShowBarsToggle = Boolean(c.show_bars_toggle ?? false);
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -2191,6 +2228,8 @@ export class SimpleScheduleCardEditor extends Base {
           <label class="field"><span>${esc(t.edFontSize)}</span><input data-key="font_size" value="${esc(c.font_size ?? '')}" placeholder="${esc(t.edFontSizeHint)}"></label>
           <label class="field"><span>${esc(t.edHeight)}</span><input data-key="height" value="${esc(c.height ?? '')}" placeholder="${esc(t.edHeightHint)}"></label>
           <label class="chk"><input type="checkbox" data-bool="show_add" ${c.show_add !== false ? 'checked' : ''}><span>${esc(t.edShowAdd)}</span></label>
+          <label class="chk"><input type="checkbox" data-bool="show_bars" ${isShowBars ? 'checked' : ''}><span>${esc(t.edShowBars)}</span></label>
+          <label class="chk"><input type="checkbox" data-bool="show_bars_toggle" ${isShowBarsToggle ? 'checked' : ''}><span>${esc(t.edShowBarsToggle)}</span></label>
           <label class="chk"><input type="checkbox" data-bool="show_time" ${isShowTime ? 'checked' : ''}><span>${esc(t.edShowTime)}</span></label>
           <label class="chk"><input type="checkbox" data-bool="show_time_toggle" ${isShowTimeToggle ? 'checked' : ''}><span>${esc(t.edShowTimeToggle)}</span></label>
         </section>
@@ -2241,6 +2280,18 @@ export class SimpleScheduleCardEditor extends Base {
         if (key === 'show_add') {
           if (checked) delete config.show_add;
           else config.show_add = false;
+        } else if (key === 'show_bars') {
+          if (checked) {
+            delete config.show_bars;
+          } else {
+            config.show_bars = false;
+          }
+        } else if (key === 'show_bars_toggle') {
+          if (checked) {
+            config.show_bars_toggle = true;
+          } else {
+            delete config.show_bars_toggle;
+          }
         } else if (key === 'show_time') {
           if (checked) {
             config.show_time = true;
@@ -2303,6 +2354,16 @@ export class SimpleScheduleCardEditor extends Base {
     const showAdd = root.querySelector('[data-bool="show_add"]') as HTMLInputElement | null;
     if (showAdd) {
       showAdd.checked = c.show_add !== false;
+    }
+
+    const showBars = root.querySelector('[data-bool="show_bars"]') as HTMLInputElement | null;
+    if (showBars) {
+      showBars.checked = c.show_bars !== false;
+    }
+
+    const showBarsToggle = root.querySelector('[data-bool="show_bars_toggle"]') as HTMLInputElement | null;
+    if (showBarsToggle) {
+      showBarsToggle.checked = Boolean(c.show_bars_toggle ?? false);
     }
 
     const showTime = root.querySelector('[data-bool="show_time"]') as HTMLInputElement | null;

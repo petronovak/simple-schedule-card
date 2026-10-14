@@ -1,4 +1,4 @@
-const VERSION = "1.0.0";
+const VERSION = "1.0.8";
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const DAY_NAMES = {
   uk: ["\u041F\u043E\u043D\u0435\u0434\u0456\u043B\u043E\u043A", "\u0412\u0456\u0432\u0442\u043E\u0440\u043E\u043A", "\u0421\u0435\u0440\u0435\u0434\u0430", "\u0427\u0435\u0442\u0432\u0435\u0440", "\u041F\u02BC\u044F\u0442\u043D\u0438\u0446\u044F", "\u0421\u0443\u0431\u043E\u0442\u0430", "\u041D\u0435\u0434\u0456\u043B\u044F"],
@@ -480,6 +480,9 @@ const STRINGS = {
     showTimes: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u0447\u0430\u0441",
     edShowTime: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u0447\u0430\u0441 \u0456\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u0456\u0432 \u0446\u0438\u0444\u0440\u0430\u043C\u0438",
     edShowTimeToggle: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u043F\u0435\u0440\u0435\u043C\u0438\u043A\u0430\u0447 \u0447\u0430\u0441\u0443 \u0432 \u0448\u0430\u043F\u0446\u0456 \u043A\u0430\u0440\u0442\u043A\u0438",
+    showBars: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u0433\u0440\u0430\u0444\u0456\u043A",
+    edShowBars: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u0433\u0440\u0430\u0444\u0456\u0447\u043D\u0456 \u0441\u043C\u0443\u0436\u043A\u0438 \u0440\u043E\u0437\u043A\u043B\u0430\u0434\u0443",
+    edShowBarsToggle: "\u041F\u043E\u043A\u0430\u0437\u0443\u0432\u0430\u0442\u0438 \u043F\u0435\u0440\u0435\u043C\u0438\u043A\u0430\u0447 \u0433\u0440\u0430\u0444\u0456\u043A\u0430 \u0432 \u0448\u0430\u043F\u0446\u0456 \u043A\u0430\u0440\u0442\u043A\u0438",
     schedules: "\u0420\u043E\u0437\u043A\u043B\u0430\u0434\u0438",
     newSchedule: "\u041D\u043E\u0432\u0438\u0439 \u0440\u043E\u0437\u043A\u043B\u0430\u0434",
     onNow: "\u041F\u0440\u0430\u0446\u044E\u0454 \u0437\u0430\u0440\u0430\u0437",
@@ -589,6 +592,9 @@ const STRINGS = {
     showTimes: "Show time",
     edShowTime: "Show time intervals as text",
     edShowTimeToggle: "Show time checkbox in card header",
+    showBars: "Show timeline",
+    edShowBars: "Show timeline bars",
+    edShowBarsToggle: "Show timeline checkbox in card header",
     schedules: "Schedules",
     newSchedule: "New schedule",
     onNow: "On now",
@@ -794,6 +800,7 @@ const SCHEDULE_STYLE = `
   .bar { position: relative; flex: 1; height: 6px; border-radius: 4px; background: color-mix(in srgb, var(--divider-color, #757575) 40%, transparent); overflow: hidden; }
   .bar i { position: absolute; top: 0; bottom: 0; background: var(--primary-color, #0288d1); border-radius: 3px; }
   .bar-times { font-size: calc(var(--card-font-size, 15px) * 1); font-variant-numeric: tabular-nums; color: var(--primary-text-color, #212121); min-width: 105px; max-width: 220px; text-align: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; opacity: 0.85; flex: none; }
+  .bars.no-bars .bar-times { flex: 1; min-width: 0; max-width: none; text-align: start; opacity: 0.95; }
   .header-actions { display: flex; align-items: center; gap: 12px; }
   .toggle-times { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: calc(var(--card-font-size, 15px) * 1); color: var(--secondary-text-color, #757575); user-select: none; }
   .toggle-times input { width: 16px; height: 16px; accent-color: var(--primary-color, #0288d1); cursor: pointer; margin: 0; }
@@ -801,6 +808,7 @@ const SCHEDULE_STYLE = `
   @media (max-width: 520px) {
     .header-actions { gap: 8px; }
     .bar-times { min-width: 80px; max-width: 130px; font-size: calc(var(--card-font-size, 15px) * 1); }
+    .bars.no-bars .bar-times { min-width: 0; max-width: none; }
   }
 `;
 const EDITOR_STYLE = `
@@ -876,16 +884,20 @@ const EDITOR_STYLE = `
   .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 `;
-function weekBarsHtml(week, lang, showTimes = false) {
+function weekBarsHtml(week, lang, showTimes = false, showBars = true) {
   const names = DAY_NAMES[lang] || DAY_NAMES.en;
   const shortNames = DAY_SHORT[lang] || DAY_SHORT.en;
-  return `<div class="bars ${showTimes ? "with-times" : ""}" dir="ltr">${DAYS.map((d, i) => {
+  const classes = ["bars"];
+  if (showTimes) classes.push("with-times");
+  if (!showBars) classes.push("no-bars");
+  return `<div class="${classes.join(" ")}" dir="ltr">${DAYS.map((d, i) => {
     const blocks = week.days[d] || [];
     const timesStr = blocks.map(blockLabel).join(", ");
+    const barHtml = showBars ? `<span class="bar">${blocks.map((b) => `<i style="left:${(b.start / 14.4).toFixed(2)}%;width:${((b.end - b.start) / 14.4).toFixed(2)}%"></i>`).join("")}</span>` : "";
     return `
-    <div class="bar-row" title="${esc(names[i])}: ${esc(timesStr || "\u2014")}">
+    <div class="bar-row ${showBars ? "" : "no-bar"}" title="${esc(names[i])}: ${esc(timesStr || "\u2014")}">
       <span class="bar-day">${esc(shortNames[i])}</span>
-      <span class="bar">${blocks.map((b) => `<i style="left:${(b.start / 14.4).toFixed(2)}%;width:${((b.end - b.start) / 14.4).toFixed(2)}%"></i>`).join("")}</span>
+      ${barHtml}
       ${showTimes ? `<span class="bar-times" title="${esc(timesStr)}">${esc(timesStr || "\u2014")}</span>` : ""}
     </div>`;
   }).join("")}</div>`;
@@ -906,6 +918,8 @@ class SimpleScheduleCard extends Base {
     this._sig = null;
     this._showTimes = false;
     this._showTimeToggle = true;
+    this._showBars = true;
+    this._showBarsToggle = false;
     this._fontSize = null;
     this._opening = false;
     this._editor = null;
@@ -923,7 +937,7 @@ class SimpleScheduleCard extends Base {
     };
   }
   static getStubConfig() {
-    return { show_add: true, show_time: false, show_time_toggle: true };
+    return { show_add: true, show_time: false, show_time_toggle: true, show_bars: true, show_bars_toggle: false };
   }
   static getConfigElement() {
     return document.createElement("simple-schedule-card-editor");
@@ -948,6 +962,8 @@ class SimpleScheduleCard extends Base {
     this._config = { show_add: true, ...config };
     this._showTimes = Boolean(config?.show_time ?? false);
     this._showTimeToggle = config?.show_time_toggle !== false;
+    this._showBars = config?.show_bars !== false;
+    this._showBarsToggle = Boolean(config?.show_bars_toggle ?? false);
     this._fontSize = cssFontSize(config?.font_size);
     this._sig = null;
     this._render();
@@ -957,6 +973,12 @@ class SimpleScheduleCard extends Base {
   }
   get showTimeToggle() {
     return this._showTimeToggle;
+  }
+  get showBars() {
+    return this._showBars;
+  }
+  get showBarsToggle() {
+    return this._showBarsToggle;
   }
   get fontSize() {
     return this._fontSize;
@@ -1049,6 +1071,7 @@ class SimpleScheduleCard extends Base {
       this._isAdmin,
       this._config,
       this._showTimes,
+      this._showBars,
       (/* @__PURE__ */ new Date()).toDateString(),
       (/* @__PURE__ */ new Date()).getHours(),
       visible.map((e) => [e.entity_id, e.last_updated]),
@@ -1066,6 +1089,9 @@ class SimpleScheduleCard extends Base {
         if (e.target?.dataset?.act === "toggleTimes") {
           this._showTimes = e.target.checked;
           this._render(true);
+        } else if (e.target?.dataset?.act === "toggleBars") {
+          this._showBars = e.target.checked;
+          this._render(true);
         }
       });
       root.addEventListener("keydown", (e) => {
@@ -1082,6 +1108,11 @@ class SimpleScheduleCard extends Base {
       <div class="header">
         <h2>${esc(this._config.title ?? t.schedules)}</h2>
         <div class="header-actions">
+          ${this._showBarsToggle ? `
+          <label class="toggle-times" title="${esc(t.edShowBars)}">
+            <input type="checkbox" data-act="toggleBars" ${this._showBars ? "checked" : ""}>
+            <span>${esc(t.showBars)}</span>
+          </label>` : ""}
           ${this._showTimeToggle ? `
           <label class="toggle-times" title="${esc(t.edShowTime)}">
             <input type="checkbox" data-act="toggleTimes" ${this._showTimes ? "checked" : ""}>
@@ -1131,7 +1162,7 @@ class SimpleScheduleCard extends Base {
         </div>
         ${when ? `<div class="when muted small">${esc(when)}</div>` : ""}
         ${yaml ? `<div class="muted small">${esc(t.yaml)}</div>` : ""}
-        ${week ? weekBarsHtml(week, this._lang, this._showTimes) : ""}
+        ${week ? weekBarsHtml(week, this._lang, this._showTimes, this._showBars) : ""}
       </div>`;
   }
   _onClick(e) {
@@ -1824,6 +1855,8 @@ class SimpleScheduleCardEditor extends Base {
     const c = this._config;
     const isShowTime = Boolean(c.show_time ?? false);
     const isShowTimeToggle = c.show_time_toggle !== false;
+    const isShowBars = c.show_bars !== false;
+    const isShowBarsToggle = Boolean(c.show_bars_toggle ?? false);
     this.shadowRoot.innerHTML = `
       <style>
         .ed { display: flex; flex-direction: column; gap: 16px; color: var(--primary-text-color, #212121); font-size: 14px; }
@@ -1848,6 +1881,8 @@ class SimpleScheduleCardEditor extends Base {
           <label class="field"><span>${esc(t.edFontSize)}</span><input data-key="font_size" value="${esc(c.font_size ?? "")}" placeholder="${esc(t.edFontSizeHint)}"></label>
           <label class="field"><span>${esc(t.edHeight)}</span><input data-key="height" value="${esc(c.height ?? "")}" placeholder="${esc(t.edHeightHint)}"></label>
           <label class="chk"><input type="checkbox" data-bool="show_add" ${c.show_add !== false ? "checked" : ""}><span>${esc(t.edShowAdd)}</span></label>
+          <label class="chk"><input type="checkbox" data-bool="show_bars" ${isShowBars ? "checked" : ""}><span>${esc(t.edShowBars)}</span></label>
+          <label class="chk"><input type="checkbox" data-bool="show_bars_toggle" ${isShowBarsToggle ? "checked" : ""}><span>${esc(t.edShowBarsToggle)}</span></label>
           <label class="chk"><input type="checkbox" data-bool="show_time" ${isShowTime ? "checked" : ""}><span>${esc(t.edShowTime)}</span></label>
           <label class="chk"><input type="checkbox" data-bool="show_time_toggle" ${isShowTimeToggle ? "checked" : ""}><span>${esc(t.edShowTimeToggle)}</span></label>
         </section>
@@ -1894,6 +1929,18 @@ class SimpleScheduleCardEditor extends Base {
         if (key === "show_add") {
           if (checked) delete config.show_add;
           else config.show_add = false;
+        } else if (key === "show_bars") {
+          if (checked) {
+            delete config.show_bars;
+          } else {
+            config.show_bars = false;
+          }
+        } else if (key === "show_bars_toggle") {
+          if (checked) {
+            config.show_bars_toggle = true;
+          } else {
+            delete config.show_bars_toggle;
+          }
         } else if (key === "show_time") {
           if (checked) {
             config.show_time = true;
@@ -1947,6 +1994,14 @@ class SimpleScheduleCardEditor extends Base {
     const showAdd = root.querySelector('[data-bool="show_add"]');
     if (showAdd) {
       showAdd.checked = c.show_add !== false;
+    }
+    const showBars = root.querySelector('[data-bool="show_bars"]');
+    if (showBars) {
+      showBars.checked = c.show_bars !== false;
+    }
+    const showBarsToggle = root.querySelector('[data-bool="show_bars_toggle"]');
+    if (showBarsToggle) {
+      showBarsToggle.checked = Boolean(c.show_bars_toggle ?? false);
     }
     const showTime = root.querySelector('[data-bool="show_time"]');
     if (showTime) {

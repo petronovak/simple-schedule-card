@@ -202,6 +202,25 @@ test('SimpleScheduleCard.setConfig correctly handles show_time_toggle', () => {
   assert.equal(card.showTimeToggle, true);
 });
 
+test('SimpleScheduleCard.setConfig correctly handles show_bars and show_bars_toggle', () => {
+  const card = new SimpleScheduleCard();
+
+  // Default values: show_bars is true, show_bars_toggle is false
+  card.setConfig({});
+  assert.equal(card.showBars, true);
+  assert.equal(card.showBarsToggle, false);
+
+  // Custom values
+  card.setConfig({ show_bars: false, show_bars_toggle: true });
+  assert.equal(card.showBars, false);
+  assert.equal(card.showBarsToggle, true);
+
+  // Re-enable show_bars
+  card.setConfig({ show_bars: true, show_bars_toggle: false });
+  assert.equal(card.showBars, true);
+  assert.equal(card.showBarsToggle, false);
+});
+
 test('SimpleScheduleCardEditor._emit preserves title and clean properties', () => {
   const editor = new SimpleScheduleCardEditor();
   let emittedConfig = null;
@@ -211,11 +230,20 @@ test('SimpleScheduleCardEditor._emit preserves title and clean properties', () =
     }
   };
 
-  editor._emit({ title: 'Тестовий розклад', show_time: true, show_time_toggle: false, font_size: '15px' });
+  editor._emit({
+    title: 'Тестовий розклад',
+    show_time: true,
+    show_time_toggle: false,
+    show_bars: false,
+    show_bars_toggle: true,
+    font_size: '15px',
+  });
   assert.deepEqual(emittedConfig, {
     title: 'Тестовий розклад',
     show_time: true,
     show_time_toggle: false,
+    show_bars: false,
+    show_bars_toggle: true,
     font_size: '15px',
   });
 

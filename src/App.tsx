@@ -155,7 +155,9 @@ export default function App() {
         show_add: true
         show_time: true
         # Опційні параметри:
-        # show_time_toggle: false # приховати чекбокс перемикання з шапки
+        # show_bars: true         # відображати графічні смужки (false - тільки години)
+        # show_bars_toggle: true  # відображати чекбокс графіка в шапці (за замовчуванням false)
+        # show_time_toggle: false # приховати чекбокс перемикання часу з шапки
         # font_size: 15px         # розмір шрифту: 14px, 15px, 16px, 1rem тощо
         # height: 450px
         # device_domains:

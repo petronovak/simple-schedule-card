@@ -2,7 +2,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/default)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0.0-green.svg)](https://github.com/)
+[![Version](https://img.shields.io/badge/Version-1.0.8-green.svg)](https://github.com/)
 
 Легка, зручна та сучасна кастомна картка Lovelace для керування вбудованими планувальниками розкладів (`schedule`) та автоматизаціями в **Home Assistant**.
 
@@ -72,6 +72,8 @@ font_size: 15px # опціонально: базовий розмір шрифт
 | :--- | :--- | :--- | :--- |
 | `title` | `string` | `Розклади` | Заголовок картки |
 | `show_add` | `boolean` | `true` | Відображати кнопку «+ Новий розклад» |
+| `show_bars` | `boolean` | `true` | Відображати графічні смужки розкладу (шкалу та сині інтервали) |
+| `show_bars_toggle` | `boolean` | `false` | Відображати інтерактивний чекбокс перемикання смужок у шапці картки |
 | `show_time` | `boolean` | `false` | Відображати години інтервалів цифрами поруч із графіком |
 | `show_time_toggle` | `boolean` | `true` | Відображати інтерактивний чекбокс перемикання часу в шапці картки |
 | `font_size` | `string` / `number` | `15px` (базовий) | Налаштування розміру шрифту картки (`14px`, `15px`, `16px`, `1rem` або число `16`) |

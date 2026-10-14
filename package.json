@@ -1,6 +1,6 @@
 {
   "name": "simple-schedule-card",
-  "version": "1.0.0",
+  "version": "1.0.8",
   "description": "Clean, modern weekly schedule card for Home Assistant with Monday-first timeline and Ukrainian & English localization",
   "type": "module",
   "scripts": {

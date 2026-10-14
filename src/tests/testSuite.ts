@@ -260,6 +260,30 @@ export async function runAllTests(): Promise<{ passed: boolean; results: TestRes
     if (!card.showTimeToggle) throw new Error('Очікувалось showTimeToggle=true');
   });
 
+  runTest('Налаштування картки', 'Підтримка параметра show_bars (керування смужками графіка)', () => {
+    const card = new SimpleScheduleCard();
+    card.setConfig({});
+    if (!card.showBars) throw new Error('Очікувалось showBars=true за замовчуванням');
+
+    card.setConfig({ show_bars: false });
+    if (card.showBars) throw new Error('Очікувалось showBars=false для show_bars: false');
+
+    card.setConfig({ show_bars: true });
+    if (!card.showBars) throw new Error('Очікувалось showBars=true для show_bars: true');
+  });
+
+  runTest('Налаштування картки', 'Підтримка параметра show_bars_toggle (перемикач графіка в шапці)', () => {
+    const card = new SimpleScheduleCard();
+    card.setConfig({});
+    if (card.showBarsToggle) throw new Error('Очікувалось showBarsToggle=false за замовчуванням');
+
+    card.setConfig({ show_bars_toggle: true });
+    if (!card.showBarsToggle) throw new Error('Очікувалось showBarsToggle=true');
+
+    card.setConfig({ show_bars_toggle: false });
+    if (card.showBarsToggle) throw new Error('Очікувалось showBarsToggle=false');
+  });
+
   runTest('Налаштування картки', 'Підтримка параметра font_size та нормалізація розміру', () => {
     const card = new SimpleScheduleCard();
 
